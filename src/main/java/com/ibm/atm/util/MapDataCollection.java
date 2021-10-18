@@ -23,17 +23,22 @@ public final class MapDataCollection {
 			for(Map.Entry<String,Object> dataLevel2 : getDataLevelN(dataLevel1).entrySet()) {
 				for(Map.Entry<String,Object> dataLevel3 : getDataLevelN(dataLevel2).entrySet()) {
 					dataList.add(dataLevel3.getValue());
-				}				
+				}
 			}
 		}
-
+		
 		return dataList;
 	}
 	
+	@SuppressWarnings("unchecked")
+	public static Map<String, Object> getDataLevelN(Map.Entry<String,Object> data) {
+		return (Map<String, Object>)data.getValue();
+	}
 	
 	@SuppressWarnings("unchecked")
-	public static Map<String, Object> getDataLevelN(Map.Entry<String,Object> data) {		
-		return (Map<String, Object>)data.getValue();
+	public static String getValueOfField(Object obj, int fieldIndex) {
+		List<Object> data=(List<Object>) obj;
+		return data.get(fieldIndex).toString();
 	}
 	
 }

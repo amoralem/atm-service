@@ -1,7 +1,8 @@
 package com.ibm.atm.service;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,9 +26,10 @@ import com.ibm.atm.util.ValidateUtil;
 public class AtmServiceImpl implements IAtmService {
 	
 	private static final String DEFAULT_VALUE="-1";
-	private static final int INDEX_ADDRESS_FIELD=4;
-	private static final int INDEX_ATMSUCURSAL=19;
+	private static final int ADDRESS_FIELD_INDEX=4;
+	private static final int ATMSUCURSAL_FIELD_INDEX=19;
 	private static final String ATM="ATM";
+	private static final String SUCURSAL="Sucursal";
 	
 	@Autowired
 	private IDataCollectionService dataCollectionService;
@@ -60,28 +62,32 @@ public class AtmServiceImpl implements IAtmService {
 			
 		}		
 	}
-	
-	
-	@SuppressWarnings("unchecked")
+		
 	private Response getBranchOfficesAndAtms(String uid, List<Object> dataCollection, Request request) {
 		LogHandler.info(uid, getClass(), "[getBranchOfficesAndAtms] size dataCollection: "+dataCollection.size());
-		List<Object> atms= new ArrayList<>();
-		List<Object> branchOffices= new ArrayList<>();
-		for(Object obj:dataCollection) {
-			List<Object> data=(List<Object>) obj;
-			if(data.get(INDEX_ADDRESS_FIELD).toString().contains(request.getCodigoPostal()) ||
-					data.get(INDEX_ADDRESS_FIELD).toString().contains(request.getDelegacion()) ||
-					data.get(INDEX_ADDRESS_FIELD).toString().contains(request.getEstado())) {
-				
-				if(data.get(INDEX_ATMSUCURSAL).toString().contains(ATM))
-					atms.add(data); 
-				else 
-					branchOffices.add(data);
-			}
-		}
+		
+		//Obtiene los ATMS
+		List<Object> atms=dataCollection.stream()
+										.filter(filterObject(request, ATM))
+										.collect(Collectors.toList());
+		//Obtiene las sucursales		
+		List<Object> branchOffices=dataCollection.stream()
+												.filter(filterObject(request, SUCURSAL))
+												.collect(Collectors.toList());
+		
 		LogHandler.info(uid, getClass(), "[getBranchOfficesAndAtms] matches found ATMS: "+atms.size());
 		LogHandler.info(uid, getClass(), "[getBranchOfficesAndAtms] matches found BranchOffices: "+branchOffices.size());
+		
 		return new Response(atms.size(),branchOffices.size(),atms,branchOffices);
+	}	
+	
+	private static Predicate<Object> filterObject(Request request, String typeOfContent) {
+		Predicate<Object> codigoPostal = value->MapDataCollection.getValueOfField(value,ADDRESS_FIELD_INDEX).contains(request.getCodigoPostal());
+		Predicate<Object> delegacion = value->MapDataCollection.getValueOfField(value,ADDRESS_FIELD_INDEX).contains(request.getDelegacion());
+		Predicate<Object> estado = value->MapDataCollection.getValueOfField(value,ADDRESS_FIELD_INDEX).contains(request.getEstado());
+		Predicate<Object> typeOfContentObject = value->MapDataCollection.getValueOfField(value,ATMSUCURSAL_FIELD_INDEX).contains(typeOfContent);
+		
+		return (codigoPostal.or(delegacion).or(estado)).and(typeOfContentObject);
 	}
 	
 	
